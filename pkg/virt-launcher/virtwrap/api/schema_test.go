@@ -491,6 +491,24 @@ var _ = ginkgo.Describe("LaunchSecurity SEV-SNP", func() {
 			Expect(string(snpXML)).ToNot(ContainSubstring(`type="sev"`))
 		})
 
+		ginkgo.It("should round-trip SEV-SNP launch security with kernel hashes", func() {
+			launchSecurity := &LaunchSecurity{
+				Type:         "sev-snp",
+				KernelHashes: "yes",
+				Policy:       "0x30000",
+			}
+
+			xmlBytes, err := xml.Marshal(launchSecurity)
+			Expect(err).ToNot(HaveOccurred())
+
+			expectedXML := `<LaunchSecurity type="sev-snp" kernelHashes="yes"><policy>0x30000</policy></LaunchSecurity>`
+			Expect(string(xmlBytes)).To(Equal(expectedXML))
+
+			var unmarshalled LaunchSecurity
+			Expect(xml.Unmarshal(xmlBytes, &unmarshalled)).To(Succeed())
+			Expect(unmarshalled).To(Equal(*launchSecurity))
+		})
+
 		ginkgo.It("should handle empty structure", func() {
 			launchSecurity := &LaunchSecurity{
 				Type: "sev-snp",

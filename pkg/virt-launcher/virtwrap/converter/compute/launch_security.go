@@ -68,6 +68,12 @@ func amd64LaunchSecurity(vmi *v1.VirtualMachineInstance) *api.LaunchSecurity {
 		}
 		// Use Default Policy
 		domain.Policy = "0x" + strconv.FormatUint(uint64(snpPolicyBits), 16)
+		// The AMD firmware rejects a direct kernel boot unless the kernel, initrd
+		// and cmdline hashes are measured into the launch digest, so measured
+		// direct boot is always enabled when a kernel is booted directly.
+		if hasDirectKernelBoot(vmi) {
+			domain.KernelHashes = "yes"
+		}
 		return domain
 	} else if launchSec.SEV != nil {
 		sevPolicyBits := launchsecurity.SEVPolicyToBits(launchSec.SEV.Policy)
@@ -91,4 +97,12 @@ func amd64LaunchSecurity(vmi *v1.VirtualMachineInstance) *api.LaunchSecurity {
 	}
 
 	return nil
+}
+
+// hasDirectKernelBoot reports whether the VMI boots a kernel directly, that is
+// whether the domain will end up with an <os><kernel> element. Note that the
+// domain cannot be inspected here, as the OS configurator runs after this one.
+func hasDirectKernelBoot(vmi *v1.VirtualMachineInstance) bool {
+	return util.HasKernelBootContainerImage(vmi) &&
+		vmi.Spec.Domain.Firmware.KernelBoot.Container.KernelPath != ""
 }
